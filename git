@@ -7,4 +7,7 @@ git add .
 
 git commit -m "0.1.0 完成了侧边栏开发，同步到flomo完成"
 git log --oneline
-git reset --hard 52b2e94
+git reset --hard 30ea0f8
+git reflog
+
+1234567890
