@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 生活教练</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 对话容器 -->
+  <div class="chat-container">
+    <!-- 消息展示区域 -->
+    <div class="message-area" id="messageArea"></div>
+    
+    <!-- 用户输入区域 -->
+    <div class="input-area">
+      <textarea id="userInput" placeholder="请描述您当前的情况或困惑..."></textarea>
+      <button onclick="sendMessage()">发送</button>
+    </div>
+  </div>
+
+  <script>
+    // 消息处理逻辑
+    async function sendMessage() {
+      const userInput = document.getElementById('userInput');
+      const messageArea = document.getElementById('messageArea');
+      
+      // 添加用户消息
+      messageArea.innerHTML += `
+        <div class="message user">
+          <div class="content">${userInput.value}</div>
+        </div>
+      `;
+
+      // 记录请求内容
+      console.log('发送请求内容:', {
+        messages: [{
+          role: "user",
+          content: userInput.value
+        }]
+      });
+
+      try {
+        // 调用后端API
+        const response = await fetch('http://localhost:3001/api/chat', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            messages: [{
+              role: "user",
+              content: userInput.value
+            }]
+          })
+        });
+
+        // 处理流式响应
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let assistantMessage = '';
+let assistantContainer = null;
+        
+        while(true) {
+          const { done, value } = await reader.read();
+          if(done) break;
+          
+          buffer += decoder.decode(value, { stream: true });
+          
+          // 分割数据块
+          const chunks = buffer.split('\n\n');
+          buffer = chunks.pop() || '';
+
+          for (const chunk of chunks) {
+            const dataStart = chunk.indexOf('data: ');
+            if(dataStart === -1) continue;
+            
+            try {
+              const jsonStr = chunk.slice(dataStart + 6);
+              const data = JSON.parse(jsonStr);
+              if(data.choices?.[0]?.delta?.reasoning_content) {
+                assistantMessage += data.choices[0].delta.reasoning_content;
+                if (!assistantContainer) {
+  assistantContainer = document.createElement('div');
+  assistantContainer.className = 'message assistant';
+  assistantContainer.innerHTML = '<div class="content"></div>';
+  messageArea.appendChild(assistantContainer);
+}
+if (!assistantContainer.querySelector('.content')) {
+  assistantContainer.innerHTML = '<div class="content"></div>';
+}
+assistantContainer.querySelector('.content').textContent = assistantMessage;
+              }
+            } catch(e) {
+              console.error('解析错误:', e);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('请求失败:', error);
+      }
+      
+      userInput.value = '';
+    }
+  </script>
+</body>
+</html>

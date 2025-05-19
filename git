@@ -1,0 +1,10 @@
+git config --global user.name "libin3"
+git config --global user.email "2530842495@qq.com"
+git init
+
+# 将当前目录下的所有改动添加到Git的暂存区
+git add .
+
+git commit -m "0.1.0 完成了侧边栏开发，同步到flomo完成"
+git log --oneline
+git reset --hard 52b2e94
